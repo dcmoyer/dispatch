@@ -1,2 +1,2 @@
 # dispatch
-simple image patcher, pure python
+simple image patcher for medical images, pure python

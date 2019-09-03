@@ -1,7 +1,7 @@
 
 import numpy as np
 
-from load_images import LoadedImg
+from dispatch.load_images import LoadedImg
 
 #
 # L1 is the "manhattan" distance patch:

@@ -1,7 +1,7 @@
 
 import numpy as np
 
-from dispatch.load_images import LoadedImg
+from load_images import LoadedImg
 
 #
 # L1 is the "manhattan" distance patch:
@@ -34,8 +34,12 @@ class PatchMaker():
   def __init__(self):
     pass
 
-  def generate(self, loaded_img_obj, template=patch_template(), flatten=True):
-    for indices in loaded_img_obj.idx_iterator():
+  def generate(self, loaded_img_obj, n=None, template=patch_template(), flatten=True):
+    for patch_idx, indices in enumerate(loaded_img_obj.idx_iterator()):
+
+      if n is not None and patch_idx > n:
+        raise StopIteration
+
       patch_indices = indices + template
 
       #TODO safety first here
@@ -49,6 +53,10 @@ class PatchMaker():
       if flatten:
         values = values.flatten()
       yield values, indices
+
+
+
+
 
 
 

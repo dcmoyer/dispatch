@@ -5,7 +5,7 @@ import pathlib
 
 def _maybe_load( volume_or_name ):
   if isinstance(volume_or_name,str) or isinstance(volume_or_name,pathlib.Path):
-    if type.endswith("nii") or type.endswith("nii.gz"):
+    if volume_or_name.endswith("nii") or volume_or_name.endswith("nii.gz"):
       return nib.load(volume_or_name).get_fdata()
     else:
       raise Exception("File type not recognized")
@@ -34,11 +34,14 @@ class LoadedImg():
     for vox in np_ma_obj:
       yield vox
 
-  def idx_iterator(self):
+  def idx_iterator(self, shuffle=False):
     if self.mask_block is not None:
 
       where_mask_output = np.where(self.mask_block)
-      for index in zip(*where_mask_output):
+      where_mask_output = list(zip(*where_mask_output))
+      if shuffle:
+        np.random.shuffle(where_mask_output)
+      for index in where_mask_output:
         yield index 
 
     else:

@@ -277,7 +277,9 @@ class MRI_DataGenerator( Iterator ):
 
 
 
-
+##
+## TODO: generalize to label tuples?
+##
 class MRI_Patch_DataGenerator( MRI_DataGenerator ):
 
     def __init__(self,
@@ -289,6 +291,7 @@ class MRI_Patch_DataGenerator( MRI_DataGenerator ):
         num_loaded_files=4,
         patches_per_image=None,
         list_of_labels=None,
+        list_of_outputs=None, #this will eventually be multi-label?
         label_type=None,
         #load_files=False,
         shuffle=False,
@@ -312,6 +315,10 @@ class MRI_Patch_DataGenerator( MRI_DataGenerator ):
 
         self.loaded_files = []
         self.loaded_files_y = []
+        self.loaded_outputs = []
+
+        ##hack for now?
+        self.outputs = list_of_outputs
 
         super().__init__(
           list_of_samples, batch_size, batches_per_epoch=batches_per_epoch,
@@ -383,6 +390,19 @@ class MRI_Patch_DataGenerator( MRI_DataGenerator ):
         else:
             self.loaded_files_y.insert( idx, [])
 
+        #TODO: remove this in favor of multi-labels
+        if self.outputs is not None:
+            self.loaded_outputs.insert( idx,
+                iter(PatchMaker(
+                    LoadedImg(self.outputs[next_idx],self.masks[next_idx]),
+                    n=self.patches_per_image,
+                    shuffle=self.shuffle, bounds_check=False, remove_boundary=True
+                ))
+            )
+            self.loaded_outputs.insert( idx, self.outputs[next_idx] )
+        else:
+            self.loaded_outputs.insert( idx, [] )
+
     def _refresh_file(self, idx):
         '''
         this function manages the loaded volumes
@@ -400,6 +420,8 @@ class MRI_Patch_DataGenerator( MRI_DataGenerator ):
 
             del self.loaded_files[idx]
             del self.loaded_files_y[idx]
+            del self.loaded_outputs[idx]
+
             next_idx = self.input_order[self.input_idx]
             #TODO: generalize bounds checks...
             #TODO: reuse iterators if ...
@@ -412,6 +434,7 @@ class MRI_Patch_DataGenerator( MRI_DataGenerator ):
         batch = []
         batch_indices = []
         batch_y = []
+        batch_outputs = []
 
         for _, i in enumerate(index_array):
             
@@ -426,9 +449,15 @@ class MRI_Patch_DataGenerator( MRI_DataGenerator ):
             else:
                 patch_y = self.loaded_files_y[i]
 
+            if self.outputs is not None:
+                patch_outputs = next(self.loaded_files_y[i])
+            else:
+                patch_outputs = self.loaded_outputs[i]
+
             batch.append(patch)
             batch_indices.append(indices)
             batch_y.append(patch_y)
+            batch_outputs.append(patch_outputs)
 
         #TODO: work this into other label types?
         if self.return_indices:
@@ -438,6 +467,8 @@ class MRI_Patch_DataGenerator( MRI_DataGenerator ):
             return np.asarray(batch)
         if self.label_type is "AE":
             return np.asarray(batch), np.asarray(batch)
+        elif self.label_type is "CAE" and self.outputs is not None:
+            return np.asarray(batch), np.asarray(batch), np.asarray(batch_y), np.asarray(batch_outputs)
         elif self.label_type is "CAE":
             return np.asarray(batch), np.asarray(batch), np.asarray(batch_y)
         else:

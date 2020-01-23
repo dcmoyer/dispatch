@@ -5,8 +5,17 @@ import pathlib
 
 def _maybe_load( volume_or_name ):
   if isinstance(volume_or_name,str) or isinstance(volume_or_name,pathlib.Path):
+
     if volume_or_name.endswith("nii") or volume_or_name.endswith("nii.gz"):
       return nib.load(volume_or_name).get_fdata()
+
+    elif volume_or_name.endswith("npy"):
+      return np.load(volume_or_name) #assumes single matrix saved, so don't mess it up :)
+
+    elif volume_or_name.endswith("npz"):
+      loaded_zip = np.load(volume_or_name)
+      return loaded_zip[ loaded_zip.files[0] ]
+
     else:
       raise Exception("File type not recognized")
 
@@ -21,12 +30,15 @@ class LoadedImg():
 
     self.img_block = _maybe_load( img )
 
-    self.mask_block = _maybe_load( mask )
+    if mask is not None:
+        self.mask_block = _maybe_load( mask )
+    else:
+        self.mask_block = None
 
-    if len(self.mask_block.shape) < 3:
+    if self.mask_block is not None and len(self.mask_block.shape) < 3:
       raise Exception("2d or 1d mask???")
 
-    if self.mask_block.shape[0:3] != self.img_block.shape[0:3]:
+    if self.mask_block is not None and self.mask_block.shape[0:3] != self.img_block.shape[0:3]:
       raise Exception("image and mask differ in shape")
 
   def iterator(self):
